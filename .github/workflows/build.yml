@@ -1,0 +1,90 @@
+build.yml
+
+
+name: Build do OneConnect Watchdog
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    name: Gerar executável Windows
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v7
+
+      - name: Configurar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Instalar dependências
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Validar código Python
+        shell: pwsh
+        run: python -m py_compile OneConnectWatchdog.py
+
+      - name: Gerar executável
+        shell: pwsh
+        run: |
+          python -m PyInstaller `
+            --noconfirm `
+            --clean `
+            --onefile `
+            --noconsole `
+            --name OneConnectWatchdog `
+            OneConnectWatchdog.py
+
+      - name: Validar executável gerado
+        shell: pwsh
+        run: |
+          $executable = "dist\OneConnectWatchdog.exe"
+          if (-not (Test-Path $executable)) {
+            throw "Executável não encontrado: $executable"
+          }
+
+          $size = (Get-Item $executable).Length
+          if ($size -le 0) {
+            throw "O executável gerado está vazio."
+          }
+
+          Write-Host "Executável criado com $size bytes."
+
+      - name: Gerar checksum SHA-256
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash "dist\OneConnectWatchdog.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  OneConnectWatchdog.exe" | Set-Content "dist\OneConnectWatchdog.exe.sha256" -Encoding ascii
+
+      - name: Disponibilizar executável para download
+        uses: actions/upload-artifact@v7
+        with:
+          name: OneConnectWatchdog-Windows-${{ github.sha }}
+          path: |
+            dist/OneConnectWatchdog.exe
+            dist/OneConnectWatchdog.exe.sha256
+          if-no-files-found: error
+          retention-days: 30
