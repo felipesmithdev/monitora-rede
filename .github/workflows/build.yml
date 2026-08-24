@@ -38,7 +38,7 @@ jobs:
 
       - name: Validar código Python
         shell: pwsh
-        run: python -m py_compile OneConnectWatchdog.py
+        run: python -m py_compile oneconnect-monitora.py
 
       - name: Gerar executável
         shell: pwsh
@@ -48,13 +48,13 @@ jobs:
             --clean `
             --onefile `
             --noconsole `
-            --name OneConnectWatchdog `
-            OneConnectWatchdog.py
+            --name oneconnect-monitora `
+            oneconnect-monitora.py
 
       - name: Validar executável gerado
         shell: pwsh
         run: |
-          $executable = "dist\OneConnectWatchdog.exe"
+          $executable = "dist\oneconnect-monitora.exe"
           if (-not (Test-Path $executable)) {
             throw "Executável não encontrado: $executable"
           }
@@ -69,15 +69,15 @@ jobs:
       - name: Gerar checksum SHA-256
         shell: pwsh
         run: |
-          $hash = (Get-FileHash "dist\OneConnectWatchdog.exe" -Algorithm SHA256).Hash.ToLower()
-          "$hash  OneConnectWatchdog.exe" | Set-Content "dist\OneConnectWatchdog.exe.sha256" -Encoding ascii
+          $hash = (Get-FileHash "dist\oneconnect-monitora.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  oneconnect-monitora.exe" | Set-Content "dist\oneconnect-monitora.exe.sha256" -Encoding ascii
 
       - name: Disponibilizar executável para download
         uses: actions/upload-artifact@v7
         with:
-          name: OneConnectWatchdog-Windows-${{ github.sha }}
+          name: oneconnect-monitora-Windows-${{ github.sha }}
           path: |
-            dist/OneConnectWatchdog.exe
-            dist/OneConnectWatchdog.exe.sha256
+            dist/oneconnect-monitora.exe
+            dist/oneconnect-monitora.exe.sha256
           if-no-files-found: error
           retention-days: 30
